@@ -1,0 +1,77 @@
+#region Namespaces
+using System;
+using System.Data;
+using System.Security.Cryptography;
+using Microsoft.SqlServer.Dts.Pipeline.Wrapper;
+using Microsoft.SqlServer.Dts.Runtime.Wrapper;
+#endregion
+
+[Microsoft.SqlServer.Dts.Pipeline.SSISScriptComponentEntryPointAttribute]
+public class ScriptMain : UserComponent
+{
+    public override void PreExecute()
+    {
+        base.PreExecute();
+        /*
+         * Add your code here
+         */
+    }
+
+    public override void PostExecute()
+    {
+        base.PostExecute();
+        /*
+         * Add your code here
+         */
+    }
+
+    private SHA256 sha = new SHA256CryptoServiceProvider(); // used to create the SHA256 hash
+
+    public override void Input0_ProcessInputRow(Input0Buffer Row)
+    {
+        // concatenate all strings. NULL values are replaced with the empty string.
+        string hashSource =
+         (Row.originatingserverid_IsNull ? "" : Row.originatingserverid.ToString())
+        + (Row.name_IsNull ? "" : Row.name.ToString())
+        + (Row.ownersid_IsNull ? "" : Row.ownersid.ToString())
+        + (Row.enabled_IsNull ? "" : Row.enabled.ToString())
+        + (Row.freqtype_IsNull ? "" : Row.freqtype.ToString())
+        + (Row.freqinterval_IsNull ? "" : Row.freqinterval.ToString())
+        + (Row.freqsubdaytype_IsNull ? "" : Row.freqsubdaytype.ToString())
+        + (Row.freqsubdayinterval_IsNull ? "" : Row.freqsubdayinterval.ToString())
+        + (Row.freqrelativeinterval_IsNull ? "" : Row.freqrelativeinterval.ToString())
+        + (Row.freqrecurrencefactor_IsNull ? "" : Row.freqrecurrencefactor.ToString())
+        + (Row.activestartdate_IsNull ? "" : Row.activestartdate.ToString())
+        + (Row.activeenddate_IsNull ? "" : Row.activeenddate.ToString())
+        + (Row.activestarttime_IsNull ? "" : Row.activestarttime.ToString())
+        + (Row.activeendtime_IsNull ? "" : Row.activeendtime.ToString())
+        + (Row.datecreated_IsNull ? "" : Row.datecreated.ToString())
+        + (Row.datemodified_IsNull ? "" : Row.datemodified.ToString())
+        + (Row.versionnumber_IsNull ? "" : Row.versionnumber.ToString())
+        ;
+
+        byte[] hashBytes = sha.ComputeHash(System.Text.UnicodeEncoding.Unicode.GetBytes(hashSource));
+
+        // convert the byte stream to a string
+        System.Text.StringBuilder sb = new System.Text.StringBuilder();
+
+        for (int i = 0; i < hashBytes.Length; i++)
+        {
+            sb.Append(hashBytes[i].ToString("X2"));
+        }
+
+        //User::CurrentServerId,User::CurrentServerName,User::ServerProcessRunDatetime
+
+
+        Row.RecordHash = "0x" + sb.ToString(); // add the result to the output
+        Row.ProcessRunDatetime = Variables.ServerProcessRunDatetime;
+        //Row.RecordChangeTypeNew = Variables.RecordTypeNew; //"N"; //Convert.ToString(Dts.Variables["$Project::RecordTypeNew"].Rec.Value);
+        //Row.RecordChangeTypeUpdated = Variables.RecordTypeUpdated; //"U";// Convert.ToString(Dts.Variables["$Project::RecordTypeNew"]);
+        //Row.RecordTypeId = Variables.SubAuthFFNLineRecordType; //"U";// Convert.ToString(Dts.Variables["$Project::RecordTypeNew"]);
+        //Row.ServerId = Variables.CurrentServerId;
+        //Row.ServerName = Variables.CurrentServerName;
+        //Row.HasNoChangedData = false;
+        //Row.HasChangedData = true;
+
+    }
+}
